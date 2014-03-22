@@ -3,7 +3,7 @@ This simple python program is designed to process a LaTeX project.
 Some LaTeX users like to store each section or chapter in an individual source
 file and use "\input{}" or "\include{}" command to have them in the master
 source file. They also like to store graphic files in different descendant
-directories. This is a very command way to handle a LaTeX project, which can be
+directories. This is a very common way to manage a LaTeX project, which can be
 a book, report or paper to be submitted to a scientific journal. Many journals'
 online submission systems require a single whole latex document not multiple
 source files. Some journals even require you to name the graphic file based on 
@@ -15,7 +15,7 @@ revise your paper. This will be more painful than the first submission.
 
 I encounter this problem several times when I submitted my paper to some
 journals. Every time, I did the tedious work by hand and feel really
-unpleasant. So I decide to find a way to automatically do this work without much
+unhappy. So I decide to find a way to automatically do this work without much
 pain. I realise that Python is very useful and simple to deal with strings and
 text files. Therefore, I spent several days to learn Python and wrote a program
 to process my LaTeX project.
@@ -25,13 +25,13 @@ This is my first version of the program latexprocess.
         print "\t 1) combine multiple source files into a single source file masterFull.tex"
         print "\t 2) copy the scattered graphics and media files to pythonProcess"
         print "\t 3) copy the documentclass, bibliographystyle and bib files to pythonProcess"
-        print "\t 4) rename the names of the graphics files as sorted"
+        print "\t 4) rename the graphics files based their occurrence"
         print "\t 5) update the graphics and media files with correct names"
         print "\t 6) compile the latex project to generate a PDF and clean temporary files"
         print "  It provides several options to users"
         print "\t A) the source latex project file"
-        print "\t B) choose between latex or pdflatex model"
-        print "\t C) to compile to project or not"
+        print "\t B) select between latex or pdflatex model"
+        print "\t C) choose to compile the project or not"
         print "\t D) choose to compress the assembled project or not"
 
 To use this program to process your latex files is very easy.
@@ -39,10 +39,10 @@ To use this program to process your latex files is very easy.
 1) copy latexprocess.py to your latex project directory.
 2) execute the program with command "python latexprocess.py"
 3) it will list all the latex files in the directory, you need to choose one of
-them
-4) choose using latex or pdflatex to compile the source file
-5) select to compile or not compile your latex project
-6) select to compress the project or not
+   them
+4) select latex or pdflatex to compile the source file
+5) choose to compile or not compile your latex project
+6) choose to compress the project or not
 
 All the generate files will be stored in the directory pythonProcess.
 
@@ -52,17 +52,20 @@ Known bugs:
      \documentclass, \includegraphics, \includemovie, \bibliographystyle, \bibliography
    if you have any two of these command on the same line in the source file,
    you will get an error.
-2) \includegraphics[option]{figure}, this command should be finished just in one
+2) \includegraphics[option]{figure}, this command should be finished within just one
    text line. If you seperate it into two lines like
      \includegraphics[option]
        {figure-A}
        you will get an error.
-3) \includemovie[option]{width}{height}{figure}, this command should be finished just in one
-   text line. If you seperate it into two lines like
+3) \includemovie[option]{width}{height}{figure}, this command should be finished
+   within just text line. If you seperate it into two lines like
      \includemovie[option]{width}{height}
        {figure-A}
    you will get an error.
 4) Two \includegraphics commands cannot be on the same line.
 5) Two \includemovie    commands cannot be on the same line.
-6) If your original latex project cannot be compiled, my program will not make
-   correct.
+
+
+Warning:
+  If your original latex project cannot be compiled successfully by yourself, 
+  my program will not make it correct.
