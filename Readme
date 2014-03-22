@@ -1,4 +1,4 @@
-This simple python program is design to process a LaTeX project.
+This simple python program is designed to process a LaTeX project.
 
 Some LaTeX users like to store each section or chapter in an individual source
 file and use "\input{}" or "\include{}" command to have them in the master
