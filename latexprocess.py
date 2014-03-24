@@ -34,19 +34,10 @@ def hasLatexObject(lobj,string):
 
 def commentedLatex(string):
     """#To judge whether a latex file line is commented with '%'"""
-    iscomment=False
-    comP=string.find("%")
-
-    if comP==0:
-        iscomment=True
-    elif comP>0:
-        if string[0:comP]==" "*comP:
-            iscomment=True
-        else:
-            iscomment=False
-
-    return(iscomment)
-
+    if string.lstrip(" ")[0]=="%":
+        return (True)
+    else:
+        return (False)
 
 def commentedLatexEND(string):
     """#To judge whether a latex file line commented with Emacs END '%%%'"""
@@ -120,8 +111,8 @@ def getCleanFileName(oldname):
 
 def getNumberedGraphicsFileName(oldname,number):
     """#get a numbered graphics file name"""
-    newname="%04d" %(number)
-    newname="fig-"+newname
+    newname="fig-" + "%04d" %(number)
+    #newname="fig-"+newname
     return (newname)
 
 def getDocumentclassType(string):
@@ -196,7 +187,22 @@ class Main:
 
         self.setToCompress()
 
-        #The raw target file
+        #scan latex source files
+        self.scanLatexSource()
+
+        self.preProcessRawTargetFile()
+
+        self.readRawTargetFile()
+
+        self.processRawTargetFile()
+
+        self.copyLatexOtherFile()
+
+        self.compileLatex()
+        
+        self.compressLatex()
+
+    def scanLatexSource(self):
         lineIndex=0;
         figureIndex=0;
 
@@ -212,24 +218,10 @@ class Main:
                 inputFileLine=inputFile.readlines()
                 inputFile.close()
                 #output
-                for subline in inputFileLine:
-                    targetFile.write(subline.rstrip(" "))
+                targetFile.writelines(inputFileLine)
             else:
                 targetFile.write(line.rstrip(" "))
         targetFile.close()
-
-        self.preProcessRawTargetFile()
-
-        self.readRawTargetFile()
-
-        self.processRawTargetFile()
-
-        self.copyLatexOtherFile()
-
-        self.compileLatex()
-        
-        self.compressLatex()
-
     def compressLatex(self):
         classFileName=self.documentclass+".cls"
         bibStyleFileName=self.bibStyle+".bst"
