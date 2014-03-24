@@ -9,31 +9,15 @@ __author__ = "Zhihua Ma"
 __version__ = "1.0"
 
 import sys
+import math
 import os
 import re
+import textwrap
+import optparse
+import xml.parsers.expat
 
-latexElement={'classKey':     r"\documentclass", 
-              'bibStyleKey':  r"\bibliographystyle{",
-              'bibFileKey':   r"\bibliography{",
-              'graphicsKey':  r"\includegraphics",
-              'movieKey':     r"\includemovie",
-              'inputKey':     r"\input{",
-              'includeKey':   r"\include{",
-              'sectionKey':   r"\section",
-              'chapterKey':   r"\chap"}
-
-def hasLatexObject(lobj,string):
-    """To judge whether the string has a latex element lobj"""
-    if not commentedLatex(string):
-        if lobj in string:
-            return (True)
-        else:
-            return (False)
-    else:
-        return (False)
-
+#To judge whether a latex file line is commented with '%'
 def commentedLatex(string):
-    """#To judge whether a latex file line is commented with '%'"""
     iscomment=False
     comP=string.find("%")
 
@@ -47,9 +31,8 @@ def commentedLatex(string):
 
     return(iscomment)
 
-
+#To judge whether a latex file line commented with Emacs END '%%%'
 def commentedLatexEND(string):
-    """#To judge whether a latex file line commented with Emacs END '%%%'"""
     iscomment=False
     comP=string.find("%%%")
 
@@ -60,15 +43,23 @@ def commentedLatexEND(string):
 
     return(iscomment)
 
-
+#To judge whether a latex file is inputted or included
 def inputLatex(string):
-    """#To judge whether a latex file is inputted or included"""
-    isinput=hasLatexObject(latexElement['inputKey'],string) or hasLatexObject(latexElement['includeKey'],string)
+    isinput=False
+    if commentedLatex(string): #commented line
+        isinput=False
+    else:
+        myIn="\input{" in string or "\include{" in string
+
+        if myIn:
+            isinput=True
+        else:
+            isinput=False
             
     return(isinput)
-
+        
+#To get the name of the file to input        
 def getInputLatexFileName(linestring):
-    """#To get the name of the file to input        """
     if not inputLatex(linestring): #nothing to input
         return (False)
     else:
@@ -83,8 +74,32 @@ def getInputLatexFileName(linestring):
         fileName=linestring[comP1+1:comP2]+".tex"
         return (fileName)
 
+
+#To judge whether a graphics file needs to be input
+def graphicsToInput(linestring):
+    if not commentedLatex(linestring):
+        comP=linestring.find("\includegraphics")
+        if comP>=0:
+            return (True)
+        else:
+            return (False)
+    else:
+        return(False)
+
+#To judge whether a movie file needs to be input
+def movieToInput(linestring):
+    if not commentedLatex(linestring):
+        comP=linestring.find("\includemovie")
+        if comP>=0:
+            return (True)
+        else:
+            return (False)
+    else:
+        return(False)
+
+
+#To get the name of the graphics file
 def getGraphicsFileName(linestring):
-    """#To get the name of the graphics file"""
     comP0=linestring.find("\includegraphics")
     comP1=linestring.find("{",comP0)
     comP2=linestring.find("}",comP1)
@@ -93,22 +108,31 @@ def getGraphicsFileName(linestring):
     fileName2=fileName1.replace(".eps","")
     return fileName2
 
-
+#To get the name of the movie file
 def getMovieFileName(linestring):
-    """#To get the name of the movie file"""
+    #print "getMovieFileName"
     comP0=linestring.find("\includemovie")
+    #print linestring[comP0:]
     comP1=linestring.find("]",comP0)
+    #print linestring[comP1:]
     comP2=linestring.find("{",comP1) #width
+    #print linestring[comP2:]
     comP3=linestring.find("}",comP2)
+    #print linestring[comP3:]
     comP4=linestring.find("{",comP3) #height
+    #print linestring[comP4:]
     comP5=linestring.find("}",comP4)
+    #print linestring[comP5]
     comP6=linestring.find("{",comP5) #movie file
+    #print linestring[comP6]
     comP7=linestring.find("}",comP6)
+    #print linestring[comP6:]
     fileName=linestring[comP6+1:comP7]
+    #print fileName
     return fileName
 
-def getCleanFileName(oldname):
-    """#to get a Clean File Name"""
+#new name of the graphics file
+def getNewGraphicsFileName(oldname):
     comL=oldname.find("/")
     comR=oldname.rfind("/")
     
@@ -118,11 +142,42 @@ def getCleanFileName(oldname):
         newname=oldname[comR+1:]
         return (newname)
 
+#new name of the movie file
+def getNewMovieFileName(oldname):
+    #print "get new move file name"
+    comL=oldname.find("/")
+    comR=oldname.rfind("/")
+    
+    if comL<0:
+        return (oldname)
+    else:
+        newname=oldname[comR+1:]
+        return (newname)
+
+#get a numbered graphics file name
 def getNumberedGraphicsFileName(oldname,number):
-    """#get a numbered graphics file name"""
+    #numbersting="{:02d}".format(number)
+    #if number<10:
+    #    newname="fig-0"+str(number)+"-"+oldname
+    #    return (newname)
+    #else:
+    #    newname="fig-"+str(number)+"-"+oldname
+    #    return (newname)
+
     newname="%04d" %(number)
+    #newname="fig-"+newname+"-"+oldname
     newname="fig-"+newname
     return (newname)
+
+#to judge whether the documentclass is declared
+def declaredClass(string):
+    if commentedLatex(string):
+        return (False)
+    else:
+        if "\documentclass" in string:
+            return (True)
+        else:
+            return (False)
 
 def getDocumentclassType(string):
     comP0=string.find("\documentclass")
@@ -131,18 +186,49 @@ def getDocumentclassType(string):
     typeName=string[comP1+1:comP2]
     return (typeName)
 
+#to judge whether the bibstyle is declared
+def declaredBibStyle(string):
+    if commentedLatex(string):
+        return (False)
+    else:
+        if "bibliographystyle{" in string:
+            return (True)
+        else:
+            return (False)
+
 def getBibStyle(string):
     comP0=string.find("{")
     comP1=string.find("}")
     bibStyle=string[comP0+1:comP1]
     return (bibStyle)
 
+#to judge whether the bibfile is declared
+def declaredBibFile(string):
+    if commentedLatex(string):
+        return (False)
+    else:
+        if "bibliography{" in string:
+            return (True)
+        else:
+            return (False)
+
+#to get old bib file
 def getBibFile(string):
-    """#to get old bib file"""
     comP0=string.find("{")
     comP1=string.find("}")
     bibFile=string[comP0+1:comP1]
     return (bibFile)
+
+#to get a Clean File Name
+def getCleanFileName(oldname):
+    comL=oldname.find("/")
+    comR=oldname.rfind("/")
+    
+    if comL<0:
+        return (oldname)
+    else:
+        newname=oldname[comR+1:]
+        return (newname)
 
 class Main:
     """Main program."""
@@ -204,21 +290,20 @@ class Main:
 
         for line in self.totalMasterFileLine:
             lineIndex+=1            
-            if hasLatexObject(latexElement['inputKey'],line) or hasLatexObject(latexElement['includeKey'],line):
+            if inputLatex(line):
                 inputFileName=getInputLatexFileName(line)
                 targetFile.write("%%%%%%To input file "+inputFileName+"\n")
                 #input the file
                 inputFile=open(inputFileName,"r")
                 inputFileLine=inputFile.readlines()
-                inputFile.close()
                 #output
-                for subline in inputFileLine:
-                    targetFile.write(subline.rstrip(" "))
+                #for subline in inputFileLine:
+                #    targetFile.write(subline)
+                targetFile.writelines(inputFileLine)
+                inputFile.close()
             else:
-                targetFile.write(line.rstrip(" "))
+                targetFile.write(line)
         targetFile.close()
-
-        self.preProcessRawTargetFile()
 
         self.readRawTargetFile()
 
@@ -287,28 +372,6 @@ class Main:
         if os.path.exists(bibFileName):
             os.system('cp '+bibFileName+" "+self.processDir+"/"+newBibFileName)
 
-    def preProcessRawTargetFile(self):
-        """seperate single graphics include command into multiple lines"""
-
-        file=open(self.targetFileName,"r")
-        self.totalRawFileLine=file.readlines()
-        file.close()
-                
-        #file2=open(self.targetFileName.replace(".tex","2.tex"),"w")
-        file2=open(self.targetFileName,"w")
-
-        for line in self.totalRawFileLine:
-            if not commentedLatex(line):
-                graphicsCount=line.count("\includegraphics")
-                if graphicsCount<=1:
-                    file2.write(line)
-                else:
-                    P0=line.find("\includegraphics")
-                    P1=line.find("\includegraphics",P0+1)
-                    newline=line[0:P1]+line[P1:].replace("\includegraphics","\n  \includegraphics")
-                    file2.write(newline)
-        file2.close()
-            
     def processRawTargetFile(self):
         figureIndex=0
 
@@ -316,13 +379,14 @@ class Main:
         newTargetFile=open(newTargetFileName,"w")
         for line in self.totalRawFileLine:
             if not commentedLatex(line):
-                if hasLatexObject(latexElement['graphicsKey'],line):
+                if graphicsToInput(line):
                     figureIndex+=1
-
+                    #print "Input graphics from file=%s  Content=%s" %(inputFileName,subline)
                     oldGraphicsName=getGraphicsFileName(line)
-                    newGraphicsName=getCleanFileName(oldGraphicsName)
+                    newGraphicsName=getNewGraphicsFileName(oldGraphicsName)
                     numberedGraphicsFileName=getNumberedGraphicsFileName(newGraphicsName,figureIndex)
                     
+                    #print "\toldGraphicsName=%s numberGraphicsName=%s" %(oldGraphicsName,numberedGraphicsFileName)
                     newline=line.replace(oldGraphicsName,numberedGraphicsFileName)
                     newTargetFile.write(newline)
 
@@ -333,33 +397,32 @@ class Main:
                         os.system(copyCommand1)
                     else:
                         os.system(copyCommand2)
-
-                elif hasLatexObject(latexElement['movieKey'],line):
+                        
+                elif movieToInput(line):
                     oldMovieName=getMovieFileName(line)
-                    newMovieName=getCleanFileName(oldMovieName)
+                    newMovieName=getNewMovieFileName(oldMovieName)
                     newline=line.replace(oldMovieName,newMovieName)
                     newTargetFile.write(newline)
 
                     copyCommand="cp "+oldMovieName+"\t"+self.processDir+"/"+newMovieName+"\n"
                     os.system(copyCommand)
 
-                elif hasLatexObject(latexElement['classKey'],line):
+                    #print 'oldMovieName:',oldMovieName
+                    #print 'newMovieName:',newMovieName
+
+                elif declaredClass(line):
                     newTargetFile.write(line)
                     self.documentclass=getDocumentclassType(line)
 
-                elif hasLatexObject(latexElement['bibStyleKey'],line):
+                elif declaredBibStyle(line):
                     newTargetFile.write(line)
                     self.bibStyle=getBibStyle(line)
 
-                elif hasLatexObject(latexElement['bibFileKey'],line):
+                elif declaredBibFile(line):
                     self.bibFile=getBibFile(line)
                     self.newBibFile=getCleanFileName(self.bibFile)
                     newline=line.replace(self.bibFile,self.newBibFile)
                     newTargetFile.write(newline)
-
-                elif hasLatexObject(latexElement['sectionKey'],line):
-                    #newTargetFile.write("%%"+"-"*90+"%%\n")
-                    newTargetFile.write(line)                    
                 else:
                     newTargetFile.write(line)
         newTargetFile.close()
@@ -381,16 +444,19 @@ class Main:
         masterFile=open(self.masterFileName,"r")
         self.totalMasterFileLine=masterFile.readlines();
         masterFile.close()
+        #print self.totalMasterFileLine
 
     def readRawTargetFile(self):
         file=open(self.targetFileName,"r")
         self.totalRawFileLine=file.readlines()
         file.close()
+        #print self.totalRawFileLine
 
     def setLatexModel(self):
         self.latexModel=True
         self.pdflatexModel=True
 
+        #choose latex or pdflatex model
         self.compileModel=raw_input("  Please choose compile model latex or pdflatex: ")
         if self.compileModel=="latex":
             self.latexModel=True
